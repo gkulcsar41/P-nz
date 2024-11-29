@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zsebpénz Kezelő</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px;
+        }
+        .admin-view, .child-view {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 45%;
+        }
+        label {
+            margin-top: 10px;
+            display: block;
+        }
+        input, select {
+            padding: 8px;
+            width: 100%;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: absolute;
+            width: 100%;
+            bottom: 0;
+        }
+        .password-view {
+            display: block;
+        }
+        .admin-view {
+            display: none;
+        }
+        .show-password {
+            position: relative;
+            left: 0;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Zsebpénz Kezelő</h1>
+    </header>
+
+    <!-- Szülői bejelentkezés -->
+    <div class="password-view">
+        <h2>Szülői bejelentkezés</h2>
+        <label for="password">Add meg a szülői jelszót:</label>
+        <input type="password" id="password" />
+        <span class="show-password" onclick="togglePassword()">👁️</span>
+        <button onclick="checkPassword()">Belépés</button>
+    </div>
+
+    <!-- Szülői nézet -->
+    <div class="admin-view" id="admin-view">
+        <h2>Szülői nézet</h2>
+        <label for="child">Gyerek neve:</label>
+        <select id="child"></select>
+        <label for="amount">Zsebpénz hozzáadása:</label>
+        <input type="number" id="amount" placeholder="Összeg" />
+        <button onclick="addAllowance()">Hozzáadás</button>
+    </div>
+
+    <!-- Gyerek nézet (mindig látható) -->
+    <div class="child-view" id="child-view">
+        <h2>Gyerek nézet</h2>
+        <label for="child-name">Válaszd ki a neved:</label>
+        <select id="child-name" onchange="updateChildBalance()"></select>
+        <h3>Aktuális egyenleg:</h3>
+        <p id="balance">0 Ft</p>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Zsebpénz Kezelő</p>
+    </footer>
+
+    <script>
+        const defaultChildren = [
+            { name: "Zia", balance: 0 },
+            { name: "Petra", balance: 0 },
+            { name: "Peti", balance: 0 },
+            { name: "Gábor", balance: 0 },
+            { name: "Fruzsi", balance: 0 },
+            { name: "Zsófi", balance: 0 },
+        ];
+
+        const adminPassword = "W0rdApacs555"; // A szülői jelszó
+
+        // Ellenőrizzük, hogy a gyerekek léteznek-e a localStorage-ban
+        if (!localStorage.getItem('children')) {
+            localStorage.setItem('children', JSON.stringify(defaultChildren));
+        }
+
+        // Funkció, amely ellenőrzi a szülői jelszót
+        function checkPassword() {
+            const password = document.getElementById("password").value;
+
+            if (password === adminPassword) {
+                document.querySelector('.password-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                populateChildOptions(); // Feltöltjük a gyerekek neveit szülői nézetbe
+            } else {
+                alert("Helytelen jelszó!");
+            }
+        }
+
+        // Funkció, hogy zsebpénzt adjunk hozzá egy gyerekhez
+        function addAllowance() {
+            const childName = document.getElementById("child").value;
+            const amount = parseFloat(document.getElementById("amount").value);
+
+            if (!childName || isNaN(amount)) {
+                alert("Kérlek, add meg a gyerek nevét és a zsebpénz összegét!");
+                return;
+            }
+
+            let children = JSON.parse(localStorage.getItem('children'));
+
+            let child = children.find(c => c.name === childName);
+            if (!child) {
+                alert("Nem létező gyerek neve!");
+                return;
+            }
+
+            child.balance += amount;
+
+            localStorage.setItem('children', JSON.stringify(children));
+
+            alert(`${childName} új egyenlege: ${child.balance} Ft`);
+            populateChildOptions(); // Újratöltjük a szülői legördülőt
+        }
+
+        // Funkció, hogy megjelenítsük a gyerek egyenlegét
+        function updateChildBalance() {
+            const childName = document.getElementById("child-name").value;
+            const children = JSON.parse(localStorage.getItem('children'));
+
+            const child = children.find(c => c.name === childName);
+            if (child) {
+                document.getElementById("balance").innerText = `${child.balance.toFixed(2)} Ft`;
+            } else {
+                document.getElementById("balance").innerText = "Nincs adat.";
+            }
+        }
+
+        // A gyerekek neveit előre feltöltjük a "Szülői nézet" legördülő menüjébe
+        function populateChildOptions() {
+            const children = JSON.parse(localStorage.getItem('children'));
+            const childSelect = document.getElementById("child");
+
+            childSelect.innerHTML = '';
+
+            children.forEach(child => {
+                const option = document.createElement("option");
+                option.value = child.name;
+                option.textContent = child.name;
+                childSelect.appendChild(option);
+            });
+        }
+
+        // A gyerekek neveit előre feltöltjük a "Gyerek nézet" mezőbe
+        function populateChildNameInput() {
+            const children = JSON.parse(localStorage.getItem('children'));
+            const childNameInput = document.getElementById("child-name");
+
+            childNameInput.innerHTML = '';
+
+            children.forEach(child => {
+                const option = document.createElement("option");
+                option.value = child.name;
+                option.textContent = child.name;
+                childNameInput.appendChild(option);
+            });
+
+            // Ha van kiválasztott gyerek, frissítjük az egyenleget
+            if (children.length > 0) {
+                document.getElementById("balance").innerText = `${children[0].balance} Ft`;
+            }
+        }
+
+        // Jelszó láthatóságának váltása
+        function togglePassword() {
+            const passwordField = document.getElementById("password");
+            const type = passwordField.type === "password" ? "text" : "password";
+            passwordField.type = type;
+        }
+
+        // Betöltéskor feltöltjük a gyerekeket és azok egyenlegeit
+        window.onload = function() {
+            populateChildNameInput();
+        };
+    </script>
+
+</body>
+</html>
